@@ -1,23 +1,41 @@
+version: "3.9"
+
 services:
+
+  main-app:
+    build:
+      context: ./main-app
+      dockerfile: Dockerfile
+    ports:
+      - "3005:3005"
+    depends_on:
+      - product-service
+      - cart-service
+      - review-service
+    environment:
+      - HOSTNAME=main-app
+
   product-service:
     build:
       context: ./product-service
       dockerfile: Dockerfile
     ports:
-      - 3000:3000
+      - "3000:3000"
     environment:
       - DB_HOST=product-db
       - DB_USER=root
       - DB_PASSWORD=root
       - DB_NAME=productdb
     depends_on:
-      - product-db
+      product-db:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "--host=product-db", "--user=root", "--password=root"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
+
   product-db:
     image: mysql:8.0
     restart: always
@@ -27,13 +45,12 @@ services:
     volumes:
       - product-db-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h","localhost", "-u", "root", "-proot"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
       interval: 10s
-      timeout: 5s
       retries: 5
       start_period: 30s
+      timeout: 5s
 
-  # Cart Service (PostgreSQL)
   cart-service:
     build:
       context: ./cart-service
@@ -47,20 +64,21 @@ services:
       - DB_NAME=cartdb
       - APP_ENV=docker
     depends_on:
-      - cart-db
+      cart-db:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "pg_isready", "--host=cart-db", "--username=postgres", "--dbname=cartdb"]
       interval: 10s
       retries: 5
-      start_period: 30s
       timeout: 5s
+      start_period: 30s
     command: bash -c "sleep 10 && php artisan migrate && php -S 0.0.0.0:3002 -t public"
 
   cart-db:
     image: postgres:13
     restart: always
     environment:
-      POSTGRES_USER: postgres  
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: Dev@root23
       POSTGRES_DB: cartdb
     ports:
@@ -71,12 +89,12 @@ services:
       test: ["CMD", "pg_isready", "--host=cart-db", "--username=postgres", "--dbname=cartdb"]
       interval: 10s
       retries: 5
-      start_period: 30s
       timeout: 5s
+      start_period: 30s
 
   review-service:
     build:
-      context: ./review-service  
+      context: ./review-service
       dockerfile: Dockerfile
     ports:
       - "3003:3003"
@@ -90,8 +108,8 @@ services:
       test: ["CMD", "mongo", "--eval", "db.stats()"]
       interval: 10s
       retries: 5
-      start_period: 30s
       timeout: 5s
+      start_period: 30s
 
   review-db:
     image: mongo:6.0
@@ -103,6 +121,7 @@ services:
       - MONGO_INITDB_ROOT_PASSWORD=Dev@root23
     volumes:
       - review-db-data:/data/db
+
 
 volumes:
   product-db-data:

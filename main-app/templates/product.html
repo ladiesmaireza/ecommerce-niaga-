@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Product Notification</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <link rel= "stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <style type="text/css">
+        body, table, td, a {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+        table, td {
+            mso-table-lspace: 0pt;
+            mso-table-rspace: 0pt;
+        }
+        img {
+            -ms-interpolation-mode: bicubic;
+            border: 0;
+            height: auto;
+            line-height: 100%;
+            outline: none;
+            text-decoration: none;
+        }
+        table {
+            border-collapse: collapse !important;
+        }
+        body {
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            background-color: #eeeeee;
+        }
+        a[x-apple-data-detectors] {
+            color: inherit !important;
+            text-decoration: none !important;
+            font-size: inherit !important;
+            font-family: inherit !important;
+            font-weight: inherit !important;
+            line-height: inherit !important;
+        }
+        @media screen and (max-width: 480px) {
+            .mobile-hide { display: none !important; }
+            .mobile-center { text-align: center !important; }
+        }
+        div[style*="margin: 16px 0;"] { margin: 0 !important; }
+    </style>
+</head>
+
+<body>
+    <div style="display:none; font-size:1px; color:#fefefe; line-height:1px; font-family:Open Sans, Helvetica, Arial, sans-serif; max-height:0; max-width:0; opacity:0; overflow:hidden;">
+        Product update notification
+    </div>
+
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+            <td align="center" bgcolor="#eeeeee">
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td align="center" valign="top" style="font-size:0; padding:35px;" bgcolor="#ff7361">
+                            <div style="display:inline-block; max-width:50%; min-width:100px; width:100%; vertical-align:top;">
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:300px;">
+                                    <tr>
+                                        <td align="left" valign="top" style="font-family:Open Sans, Helvetica, Arial, sans-serif; font-size:36px; font-weight:800; line-height:48px;" class="mobile-center">
+                                            <h1 style="margin:0; color:#ffffff;">
+                                                {{ product['data']['name'] }}
+                                            </h1>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div style="display:inline-block; max-width:50%; min-width:100px; width:100%; vertical-align:top;" class="mobile-hide">
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:300px;">
+                                    <tr>
+                                        <td align="right" valign="top" style="font-family:Open Sans, Helvetica, Arial, sans-serif; font-size:18px; font-weight:400;">
+                                            <p style="margin:0; color:#ffffff;">
+                                                <a href="#" target="_blank" style="color:#ffffff; text-decoration:none;">
+                                                    IDR {{ product['data']['price'] }} 
+                                                </a>
+                                            </p>
+                                        </td>
+                                        <td>
+                                            <a href="#" target="_blank">
+                                                <img src="https://img.icons8.com/dusk/64/000000/add-shopping-cart.png" width="27" height="23" alt="Add to cart" />
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Main Section -->
+                    <tr>
+                        <td align="center" style="padding:35px; background-color:#ffffff;" bgcolor="#ffffff">
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;">
+                                <tr>
+                                    <td align="center" style="font-family:Open Sans, Helvetica, Arial, sans-serif; font-size:16px; line-height:24px; padding-bottom:15px; border-bottom:3px solid #eeeeee;">
+                                        <img src="https://www.arenalaptop.com/wp-content/uploads/2017/06/harga-dan-spesifikasi-ASUS-VivoBook-Max-X441SA-350x350.jpeg" width="190" height="187" alt="Product image" />
+                                        <h2 style="font-size:30px; font-weight:800; color:#333333; margin:10px 0;">
+                                         Sold out: {{ cart if cart else '5' }}
+                                        </h2>
+                                        <h3>{{ product['data']['name'] | default('') }}</h3>
+                                        <p style="color:#777777;">
+                                            {{ product['data']['description'] or '' }}
+                                        </p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="center" style="padding:25px 0;">
+                                        <table border="0" cellspacing="0" cellpadding="0">
+                                            <tr>
+                                                <td align="center" bgcolor="#ed8e20" style="border-radius:5px;">
+                                                    <a href="#" target="_blank" style="font-size:18px; font-family:Open Sans, Helvetica, Arial, sans-serif; color:#ffffff; text-decoration:none; padding:15px 30px; border:1px solid #ed8e20; display:block; border-radius:5px;">
+                                                        Finish Order
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Reviews -->
+                    <tr>
+                        <td align="center" bgcolor="#ffffff" style="padding:35px; border-top:1px solid #dddddd;">
+                            <img src="https://img.icons8.com/dusk/64/000000/ms-share-point.png" width="37" height="37" alt="Reviews" />
+                            <p style="font-family:Open Sans, Helvetica, Arial, sans-serif; font-size:14px; font-weight:800; color:#333333; margin:10px 0;">Reviews</p>
+                            <div style="text-align:left; font-family:Open Sans, Helvetica, Arial, sans-serif; font-size:14px; color:#777777;">
+                                {% for r in review %}
+                                    <strong>Ratings: {{ r['ratings'] }}</strong><br>
+                                    {{ r['comment'] }}<br><br>
+                                {% endfor %}
+
+                                <strong>Ratings: 4</strong>
+                            </div>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

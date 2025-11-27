@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User App Vue</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="p-4">
+
+<div id="app" class="container">
+
+    <h1 class="mb-4">Daftar User</h1>
+
+    <user-list :users="users"></user-list>
+
+    <h2 class="mt-5">Tambah User Baru</h2>
+
+    <user-form @add-user="addUser"></user-form>
+
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+<script>
+const { createApp, ref } = Vue;
+
+const UserList = {
+    props: ["users"],
+    template: `
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th><th>Name</th><th>Email</th><th>Role</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="u in users" :key="u.id">
+                    <td>{{ u.id }}</td>
+                    <td>{{ u.name }}</td>
+                    <td>{{ u.email }}</td>
+                    <td>{{ u.role }}</td>
+                </tr>
+            </tbody>
+        </table>
+    `
+};
+
+const UserForm = {
+    emits: ["add-user"],
+    data() {
+        return {
+            name: "",
+            email: "",
+            role: "",
+            error: ""
+        };
+    },
+    methods: {
+        submitForm() {
+            if (!this.name || !this.email || !this.role) {
+                this.error = "Semua field wajib diisi!";
+                return;
+            }
+
+            this.error = "";
+            this.$emit("add-user", {
+                name: this.name,
+                email: this.email,
+                role: this.role
+            });
+
+            this.name = "";
+            this.email = "";
+            this.role = "";
+        }
+    },
+    template: `
+        <div>
+            <div v-if="error" class="alert alert-danger">{{ error }}</div>
+
+            <input v-model="name" class="form-control mb-2" type="text" placeholder="Name">
+            <input v-model="email" class="form-control mb-2" type="email" placeholder="Email">
+            <input v-model="role" class="form-control mb-2" type="text" placeholder="Role">
+
+            <button class="btn btn-primary" @click="submitForm">
+                Tambah User
+            </button>
+        </div>
+    `
+};
+
+createApp({
+    components: { UserList, UserForm },
+
+    setup() {
+        const users = ref([]);
+
+        const loadUsers = () => {
+            fetch("http://localhost:4000/users")
+                .then(res => res.json())
+                .then(data => users.value = data);
+        };
+
+        const addUser = (newUser) => {
+            fetch("http://localhost:4000/users", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(newUser)
+            })
+            .then(res => res.json())
+            .then(() => loadUsers());
+        };
+
+        loadUsers();
+
+        return { users, addUser };
+    }
+}).mount("#app");
+</script>
+
+</body>
+</html>

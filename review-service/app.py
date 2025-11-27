@@ -1,131 +1,77 @@
-from flask import Flask, jsonify, request
-from pymongo import MongoClient
-import os
-from urllib.parse import quote_plus
+from flask import Flask, jsonify, render_template, request
 import requests
-from bson import ObjectId
+from functools import lru_cache
+import os
 
 app = Flask(__name__)
 
-# MongoDB config
-username = os.getenv('MONGO_USER', 'root')
-password = os.getenv('MONGO_PASSWORD', 'Dev@root')
-encoding_username = quote_plus(username)
-encoding_password = quote_plus(password)
+product_service_host = "localhost" if os.getenv("HOSTNAME") is None else "product-service"
+cart_service_host = "localhost" if os.getenv("HOSTNAME") is None else "cart-service"
+review_service_host = "localhost" if os.getenv("HOSTNAME") is None else "review-service"
 
-mongo_host = os.getenv("MONGO_HOST", "localhost")
-mongo_port = os.getenv("MONGO_PORT", "27017")
-mongo_db = os.getenv("MONGO_DB", "reviewdb")
-mongo_auth_source = os.getenv("MONGO_AUTH_SOURCE", "admin")
 
-MONGO_URI = f"mongodb://{encoding_username}:{encoding_password}@{mongo_host}:{mongo_port}/{mongo_db}?authSource={mongo_auth_source}"
-client = MongoClient(MONGO_URI)
-db = client[mongo_db]
-reviews_collection = db['reviews']
-
-# Product service config
-product_service_host = "product-service" if os.getenv("HOSTNAME") else "localhost"
-PRODUCT_SERVICE_URL = f"http://{product_service_host}:3000/products/"
-
-def get_product_data(product_id):
+@lru_cache(maxsize=128)
+def get_products(product_id):
     try:
-        response = requests.get(f'{PRODUCT_SERVICE_URL}{product_id}')
-        if response.status_code == 200:
-            return response.json().get("data")
-        else:
-            return None
+        response = requests.get(f'http://{product_service_host}:3000/products/{product_id}')
+        response.raise_for_status()
+        return response.json()
     except requests.exceptions.RequestException as e:
         print(f"Error fetching product data: {e}")
-        return None
+        return {"error": "Failed to fetch product data"}
 
-def format_review_id(review):
-    review["_id"] = str(review["_id"])
-    return review
 
-# Routes
-@app.route('/reviews', methods=['GET'])
-def get_reviews():
+def get_carts(product_id):
     try:
-        reviews = [format_review_id(review) for review in reviews_collection.find()]
-        result = []
-        for review in reviews:
-            product_data = get_product_data(review["product_id"])
-            if product_data:
-                result.append({
-                    "id": review["_id"],
-                    "product_id": review["product_id"],
-                    "review": review["review"],
-                    "product": product_data
-                })
-        
-        return jsonify({
-            "message": "All reviews fetched successfully",
-            "data": result
-        }), 200
-    
-    except Exception as e:
-        return jsonify({
-            "error": str(e),
-            "message": "Error fetching reviews"
-        }), 500
+        response = requests.get(f'http://{cart_service_host}:3002/cart/{product_id}')
+        response.raise_for_status()
+        data = response.json().get("data", [])
+        for item in data:
+            if item.get("product_id") == product_id:
+                return item.get("quantity", 0)
+        return 0
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching cart data: {e}")
+        return 0
 
-@app.route("/products/<int:product_id>/reviews", methods=["GET"])
-def get_reviews_by_product(product_id):
+
+def get_reviews(product_id):
     try:
-        product_data = get_product_data(product_id)
-        if not product_data:
-            return jsonify({"message": "Product not found"}), 404
+        response = requests.get(f'http://{review_service_host}:3003/products/{product_id}/reviews')
+        response.raise_for_status()
+        data = response.json()
+        return data.get('data', {"reviews": [], "product": {}})
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching review data: {e}")
+        return {"error": "Failed to fetch review data"}
 
-        reviews = [format_review_id(review) for review in reviews_collection.find({"product_id": product_id})]
 
-        response = {
-            "product_id": product_id,
-            "product": product_data,
-            "reviews": reviews
-        }
+@app.route('/products/<int:product_id>')
+def get_product_info(product_id):
+    product = get_products(product_id)
+    cart = get_carts(product_id)
+    review = get_reviews(product_id)
+    reviews_list = review.get("reviews", []) if "error" not in review else []
 
-        return jsonify({
-            "message": "Reviews fetched successfully",
-            "data": response
-        }), 200
-    
-    except Exception as e:
-        return jsonify({
-            "error": str(e),
-            "message": "Error fetching reviews by product"
-        }), 500
+    return render_template(
+        'product.html',
+        product=product,
+        cart=cart,
+        reviews=reviews_list
+    )
 
-@app.route('/reviews', methods=['POST'])
-def create_review():
-    data = request.json
-    product_id = data.get("product_id")
-    ratings = data.get("ratings")
-    comment = data.get("comment")
 
-    if not product_id or ratings is None or not comment:
-        return jsonify({"message": "Missing product_id, ratings, or comment"}), 400
-
-    product_data = get_product_data(product_id)
-    if not product_data:
-        return jsonify({"message": "Product not found"}), 404
-
-    review = {
-        "product_id": product_id,
-        "review": {"ratings": ratings, "comment": comment}
-    }
-
-    result = reviews_collection.insert_one(review)
-    return jsonify({"message": "Review created successfully", "id": str(result.inserted_id)}), 201
-
-@app.route("/reviews/<string:review_id>", methods=["DELETE"])
-def delete_review(review_id):
+# Endpoint untuk menambah cart
+@app.route('/api/cart/add/<int:product_id>', methods=['POST'])
+def add_to_cart(product_id):
     try:
-        result = reviews_collection.delete_one({"_id": ObjectId(review_id)})
-        if result.deleted_count == 0:
-            return jsonify({"message": "Review not found"}), 404
-        return jsonify({"message": "Review deleted"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e), "message": "Invalid review ID"}), 400
+        response = requests.post(f'http://{cart_service_host}:3002/cart/add/{product_id}')
+        response.raise_for_status()
+        data = response.json()
+        return jsonify({"new_quantity": data.get("quantity", 0)})
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e), "new_quantity": 0})
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=3003, debug=True)
+
+if __name__ == '__main__':
+    app.run(host="0.0.0.0", port=3005, debug=True)
